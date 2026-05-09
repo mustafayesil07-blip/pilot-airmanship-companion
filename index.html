@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Pilot Airmanship Companion</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0B1120">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;1,14..32,400&display=swap" rel="stylesheet">
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #080E1C;
+      --surface:     #0F1928;
+      --surface2:    #16233A;
+      --surface3:    #1C2E4A;
+      --border:      #1E3050;
+      --border2:     #243656;
+      --accent:      #3B82F6;
+      --accent-dim:  #1D4ED8;
+      --success:     #10B981;
+      --warning:     #F59E0B;
+      --danger:      #EF4444;
+      --text:        #EDF2FF;
+      --text-sec:    #8FA8C8;
+      --text-muted:  #4D6A8A;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ===== HEADER ===== */
+    .header {
+      background: linear-gradient(160deg, #0d1e3d 0%, #080E1C 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 0 16px;
+      height: 58px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .header-back {
+      width: 34px; height: 34px;
+      border-radius: 9px;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      color: var(--accent);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; line-height: 1;
+      transition: background .15s;
+      flex-shrink: 0;
+      user-select: none;
+    }
+    .header-back:active { background: var(--surface3); }
+    .header-back.hidden { visibility: hidden; pointer-events: none; }
+
+    .header-title { flex: 1; min-width: 0; }
+    .header-title h1 {
+      font-size: 15px; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      letter-spacing: -.01em;
+    }
+    .header-title p {
+      font-size: 10.5px; color: var(--text-muted);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      margin-top: 1px; letter-spacing: .01em;
+    }
+
+    .header-add {
+      width: 34px; height: 34px;
+      border-radius: 9px;
+      background: var(--accent);
+      border: none; color: #fff;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; font-weight: 300; line-height: 1;
+      transition: background .15s, transform .1s;
+      flex-shrink: 0;
+      user-select: none;
+    }
+    .header-add:active { background: var(--accent-dim); transform: scale(.93); }
+
+    /* ===== MAIN ===== */
+    .main {
+      padding: 14px 14px 100px;
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    /* ===== HERO ===== */
+    .hero {
+      background: linear-gradient(135deg, #112354 0%, #0a1730 60%, #080E1C 100%);
+      border: 1px solid #1e3566;
+      border-radius: 16px;
+      padding: 18px 18px 16px;
+      margin-bottom: 18px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::after {
+      content: '\2708';
+      position: absolute;
+      right: 14px; top: 50%;
+      transform: translateY(-50%) rotate(8deg);
+      font-size: 72px; opacity: .06;
+      pointer-events: none;
+    }
+    .hero h2 { font-size: 19px; font-weight: 700; letter-spacing: -.02em; }
+    .hero p {
+      font-size: 12.5px; color: var(--text-sec);
+      line-height: 1.55; margin-top: 5px;
+    }
+    .hero-stats {
+      display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap;
+    }
+    .hero-stat {
+      background: rgba(59,130,246,.1);
+      border: 1px solid rgba(59,130,246,.18);
+      border-radius: 10px;
+      padding: 8px 14px;
+      text-align: center; min-width: 70px;
+    }
+    .hero-stat-val { font-size: 22px; font-weight: 700; color: var(--accent); line-height: 1; }
+    .hero-stat-lbl { font-size: 9.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .6px; margin-top: 3px; }
+
+    /* ===== SECTION LABEL ===== */
+    .section-label {
+      font-size: 10.5px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 1px;
+      color: var(--text-muted);
+      margin-bottom: 8px; padding-left: 2px;
+    }
+
+    /* ===== LIST / CARDS ===== */
+    .list { display: flex; flex-direction: column; gap: 7px; }
+
+    .list-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 13px;
+      padding: 13px 14px;
+      display: flex; align-items: center; gap: 11px;
+      cursor: pointer;
+      transition: background .13s, border-color .13s, transform .13s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .list-item:active { transform: scale(.988); background: var(--surface2); }
+    .list-item:hover  { background: var(--surface2); border-color: var(--border2); }
+
+    .list-item-bar {
+      width: 3px; height: 30px;
+      border-radius: 2px;
+      background: var(--accent);
+      flex-shrink: 0;
+    }
+
+    .list-item-body { flex: 1; min-width: 0; }
+    .list-item-name {
+      font-size: 13.5px; font-weight: 500;
+      color: var(--text); line-height: 1.35;
+    }
+    .list-item-meta { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+
+    .item-actions { display: flex; gap: 4px; flex-shrink: 0; }
+
+    .btn-icon {
+      width: 28px; height: 28px;
+      border-radius: 7px;
+      border: 1px solid var(--border2);
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px;
+      transition: background .13s, border-color .13s, color .13s;
+      flex-shrink: 0;
+    }
+    .btn-icon:active { transform: scale(.9); }
+    .btn-icon.edit:hover  { background: rgba(59,130,246,.1); border-color: var(--accent); color: var(--accent); }
+    .btn-icon.del:hover   { background: rgba(239,68,68,.1);  border-color: var(--danger);  color: var(--danger); }
+
+    .list-chevron { color: var(--text-muted); font-size: 16px; flex-shrink: 0; opacity: .6; }
+
+    .num-badge {
+      min-width: 24px; height: 24px;
+      padding: 0 5px;
+      background: rgba(59,130,246,.1);
+      border: 1px solid rgba(59,130,246,.2);
+      border-radius: 6px;
+      font-size: 10px; font-weight: 600; color: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* ===== CHECKLIST ITEMS ===== */
+    .check-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      padding: 11px 13px;
+      display: flex; align-items: flex-start; gap: 10px;
+      transition: background .13s, border-color .13s;
+    }
+    .check-item.done {
+      background: rgba(16,185,129,.04);
+      border-color: rgba(16,185,129,.18);
+    }
+
+    .check-item input[type="checkbox"] {
+      width: 17px; height: 17px;
+      margin-top: 1px;
+      accent-color: var(--success);
+      cursor: pointer; flex-shrink: 0;
+    }
+
+    .check-item-text {
+      flex: 1; font-size: 13.5px; color: var(--text);
+      line-height: 1.45; word-break: break-word;
+    }
+    .check-item.done .check-item-text {
+      text-decoration: line-through; color: var(--text-muted);
+    }
+
+    /* ===== PROGRESS ===== */
+    .progress-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 13px;
+      padding: 13px 15px;
+      margin-bottom: 14px;
+    }
+    .progress-top {
+      display: flex; justify-content: space-between;
+      align-items: center; margin-bottom: 9px;
+    }
+    .progress-lbl { font-size: 11.5px; color: var(--text-sec); font-weight: 500; }
+    .progress-pct { font-size: 12px; color: var(--accent); font-weight: 600; }
+
+    .progress-bar {
+      height: 4px; background: var(--border2);
+      border-radius: 2px; overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--success));
+      border-radius: 2px;
+      transition: width .4s ease;
+    }
+
+    .reset-btn {
+      background: rgba(245,158,11,.08);
+      border: 1px solid rgba(245,158,11,.25);
+      color: var(--warning);
+      border-radius: 7px;
+      padding: 5px 11px;
+      font-size: 11px; font-weight: 500;
+      cursor: pointer;
+      transition: background .13s;
+      font-family: inherit;
+    }
+    .reset-btn:hover { background: rgba(245,158,11,.16); }
+
+    /* ===== FAB ===== */
+    .fab {
+      position: fixed;
+      bottom: 22px; right: 16px;
+      width: 52px; height: 52px;
+      border-radius: 16px;
+      background: var(--accent);
+      border: none; color: #fff;
+      font-size: 26px; font-weight: 300;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 20px rgba(59,130,246,.4);
+      transition: transform .15s, box-shadow .15s;
+      z-index: 50;
+      user-select: none;
+    }
+    .fab:active { transform: scale(.92); box-shadow: 0 2px 10px rgba(59,130,246,.3); }
+
+    /* ===== MODAL ===== */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.65);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+      display: flex; align-items: flex-end; justify-content: center;
+      z-index: 200;
+      opacity: 0; pointer-events: none;
+      transition: opacity .2s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 20px 20px 0 0;
+      padding: 8px 18px 30px;
+      width: 100%; max-width: 680px;
+      transform: translateY(100%);
+      transition: transform .28s cubic-bezier(.32,.72,0,1);
+    }
+    .modal-overlay.open .modal { transform: translateY(0); }
+
+    .modal-handle {
+      width: 38px; height: 4px;
+      background: var(--border2);
+      border-radius: 2px;
+      margin: 10px auto 18px;
+    }
+
+    .modal-title {
+      font-size: 16px; font-weight: 600;
+      margin-bottom: 14px; letter-spacing: -.01em;
+    }
+
+    .modal-input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border2);
+      border-radius: 11px;
+      padding: 12px 13px;
+      color: var(--text);
+      font-size: 14.5px; font-family: inherit;
+      outline: none; resize: vertical;
+      transition: border-color .15s;
+      min-height: 48px;
+    }
+    .modal-input:focus { border-color: var(--accent); }
+
+    .modal-btns { display: flex; gap: 8px; margin-top: 14px; }
+
+    .btn {
+      flex: 1; padding: 12px;
+      border-radius: 11px; border: none;
+      font-size: 14px; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+      transition: background .13s, transform .1s;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-dim); }
+    .btn-cancel  { background: var(--surface3); color: var(--text-sec); }
+    .btn-cancel:hover { background: var(--border2); }
+
+    /* ===== EMPTY STATE ===== */
+    .empty {
+      text-align: center; padding: 38px 20px;
+      color: var(--text-muted);
+    }
+    .empty-ico { font-size: 38px; margin-bottom: 10px; }
+    .empty-ttl { font-size: 14px; font-weight: 500; color: var(--text-sec); }
+    .empty-sub { font-size: 12px; margin-top: 4px; }
+
+    /* ===== ANIMATION ===== */
+    .slide-in { animation: slideIn .18s ease both; }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(14px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    /* ===== SCROLLBAR ===== */
+    ::-webkit-scrollbar { width: 3px; height: 3px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+    @media (max-width: 380px) {
+      .hero h2 { font-size: 17px; }
+      .main { padding: 10px 10px 100px; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal" id="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-title">Add</div>
+    <textarea class="modal-input" id="modal-input" rows="2" placeholder="Enter text..."></textarea>
+    <div class="modal-btns">
+      <button class="btn btn-cancel" id="btn-cancel">Cancel</button>
+      <button class="btn btn-primary" id="btn-confirm">Add</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ========================================================
+   DATA
+======================================================== */
+const INITIAL = {
+  categories: [{
+    id: 'cat_aircraft_systems',
+    name: 'Aircraft Systems',
+    color: '#3b82f6',
+    subcategories: [
+      { id: 'sub_1',  name: '1 — Airplane General, Emergency Equipment, Doors, Windows', items: [] },
+      { id: 'sub_2',  name: '2 — Air Systems', items: [] },
+      { id: 'sub_3',  name: '3 — Anti-Ice, Rain', items: [] },
+      { id: 'sub_4',  name: '4 — Automatic Flight', items: [] },
+      { id: 'sub_5',  name: '5 — Communications', items: [] },
+      { id: 'sub_6',  name: '6 — Electrical', items: [] },
+      { id: 'sub_7',  name: '7 — Engines, APU', items: [] },
+      { id: 'sub_8',  name: '8 — Fire Protection', items: [] },
+      { id: 'sub_9',  name: '9 — Flight Controls', items: [] },
+      { id: 'sub_10', name: '10 — Flight Instruments, Displays', items: [] },
+      { id: 'sub_11', name: '11 — Flight Management, Navigation', items: [] },
+      { id: 'sub_12', name: '12 — Fuel', items: [] },
+      { id: 'sub_13', name: '13 — Hydraulics', items: [] },
+      { id: 'sub_14', name: '14 — Landing Gear', items: [] },
+      { id: 'sub_15', name: '15 — Warning Systems', items: [] },
+    ]
+  }]
+};
+
+function load() {
+  try {
+    const s = localStorage.getItem('pac_v1');
+    if (s) return JSON.parse(s);
+  } catch(_) {}
+  return JSON.parse(JSON.stringify(INITIAL));
+}
+
+function save() { localStorage.setItem('pac_v1', JSON.stringify(S.data)); }
+
+function uid() { return '_' + Math.random().toString(36).slice(2,9) + Date.now().toString(36); }
+
+/* ========================================================
+   STATE
+======================================================== */
+const S = {
+  data: load(),
+  view: 'home',
+  catId: null,
+  subId: null,
+};
+
+const getCat = () => S.data.categories.find(c => c.id === S.catId);
+const getSub = () => getCat()?.subcategories.find(s => s.id === S.subId);
+
+/* ========================================================
+   MODAL (Promise-based)
+======================================================== */
+const overlay  = document.getElementById('modal-overlay');
+const mTitle   = document.getElementById('modal-title');
+const mInput   = document.getElementById('modal-input');
+const mConfirm = document.getElementById('btn-confirm');
+const mCancel  = document.getElementById('btn-cancel');
+
+function openModal(title, defaultVal, confirmLabel, multiline) {
+  defaultVal   = defaultVal   || '';
+  confirmLabel = confirmLabel || 'Add';
+  multiline    = !!multiline;
+
+  return new Promise(function(resolve) {
+    mTitle.textContent    = title;
+    mInput.value          = defaultVal;
+    mInput.rows           = multiline ? 3 : 2;
+    mConfirm.textContent  = confirmLabel;
+    overlay.classList.add('open');
+    setTimeout(function() { mInput.focus(); mInput.select(); }, 280);
+
+    function done(val) {
+      overlay.classList.remove('open');
+      mInput.removeEventListener('keydown', onKey);
+      overlay.removeEventListener('click', onOverlay);
+      resolve(val);
+    }
+
+    function onConfirm() {
+      var v = mInput.value.trim();
+      if (!v) { mInput.focus(); return; }
+      done(v);
+    }
+
+    function onCancel() { done(null); }
+
+    function onKey(e) {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onConfirm(); }
+      if (e.key === 'Escape') onCancel();
+    }
+
+    function onOverlay(e) { if (e.target === overlay) onCancel(); }
+
+    mConfirm.addEventListener('click', onConfirm, { once: true });
+    mCancel .addEventListener('click', onCancel,  { once: true });
+    mInput  .addEventListener('keydown', onKey);
+    overlay .addEventListener('click', onOverlay);
+  });
+}
+
+/* ========================================================
+   RENDER
+======================================================== */
+var app = document.getElementById('app');
+
+function render() {
+  if      (S.view === 'home')        app.innerHTML = renderHome();
+  else if (S.view === 'category')    app.innerHTML = renderCategory();
+  else                               app.innerHTML = renderSubcategory();
+  window.scrollTo(0, 0);
+}
+
+function h(str) {
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ---- HOME ---- */
+function renderHome() {
+  var d = S.data;
+  var totalSub  = d.categories.reduce(function(a,c){ return a + c.subcategories.length; }, 0);
+  var totalItem = d.categories.reduce(function(a,c){
+    return a + c.subcategories.reduce(function(b,s){ return b + s.items.length; }, 0);
+  }, 0);
+
+  var rows = d.categories.map(function(cat) {
+    var sc = cat.subcategories.length;
+    var ic = cat.subcategories.reduce(function(a,s){ return a + s.items.length; }, 0);
+    return '<div class="list-item" onclick="navCat(\'' + cat.id + '\')">' +
+      '<div class="list-item-bar" style="background:' + h(cat.color||'#3b82f6') + '"></div>' +
+      '<div class="list-item-body">' +
+        '<div class="list-item-name">' + h(cat.name) + '</div>' +
+        '<div class="list-item-meta">' + sc + ' subcategories &middot; ' + ic + ' actions</div>' +
+      '</div>' +
+      '<div class="item-actions" onclick="event.stopPropagation()">' +
+        '<button class="btn-icon edit" onclick="doEditCat(\'' + cat.id + '\')" title="Edit">&#9999;&#65039;</button>' +
+        '<button class="btn-icon del"  onclick="doDelCat(\'' + cat.id + '\')"  title="Delete">&#128465;&#65039;</button>' +
+      '</div>' +
+      '<span class="list-item-chevron">&#8250;</span>' +
+    '</div>';
+  }).join('');
+
+  return '<div class="header">' +
+      '<button class="header-back hidden">&#8249;</button>' +
+      '<div class="header-title"><h1>&#9992; Pilot Airmanship</h1><p>Non-Normal Procedures Reference</p></div>' +
+      '<button class="header-add" onclick="doAddCat()" title="Add category">+</button>' +
+    '</div>' +
+    '<div class="main slide-in">' +
+      '<div class="hero">' +
+        '<h2>Airmanship Companion</h2>' +
+        '<p>Non-checklist airmanship actions for non-normal situations. Study &amp; refresh your knowledge anytime.</p>' +
+        '<div class="hero-stats">' +
+          '<div class="hero-stat"><div class="hero-stat-val">' + d.categories.length + '</div><div class="hero-stat-lbl">Categories</div></div>' +
+          '<div class="hero-stat"><div class="hero-stat-val">' + totalSub + '</div><div class="hero-stat-lbl">Scenarios</div></div>' +
+          '<div class="hero-stat"><div class="hero-stat-val">' + totalItem + '</div><div class="hero-stat-lbl">Actions</div></div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="section-label">Main Categories</div>' +
+      '<div class="list">' +
+        (rows || '<div class="empty"><div class="empty-ico">&#128194;</div><div class="empty-ttl">No categories yet</div><div class="empty-sub">Tap + to add one</div></div>') +
+      '</div>' +
+    '</div>';
+}
+
+/* ---- CATEGORY ---- */
+function renderCategory() {
+  var cat = getCat();
+  if (!cat) { S.view='home'; return renderHome(); }
+
+  var rows = cat.subcategories.map(function(sub, i) {
+    var total   = sub.items.length;
+    var checked = sub.items.filter(function(x){ return x.checked; }).length;
+    var meta = total === 0 ? '0 actions' : (total + ' actions &middot; ' + checked + '/' + total + ' reviewed');
+    return '<div class="list-item" onclick="navSub(\'' + sub.id + '\')">' +
+      '<div class="num-badge">' + (i+1) + '</div>' +
+      '<div class="list-item-body">' +
+        '<div class="list-item-name">' + h(sub.name) + '</div>' +
+        '<div class="list-item-meta">' + meta + '</div>' +
+      '</div>' +
+      '<div class="item-actions" onclick="event.stopPropagation()">' +
+        '<button class="btn-icon edit" onclick="doEditSub(\'' + sub.id + '\')" title="Edit">&#9999;&#65039;</button>' +
+        '<button class="btn-icon del"  onclick="doDelSub(\'' + sub.id + '\')"  title="Delete">&#128465;&#65039;</button>' +
+      '</div>' +
+      '<span class="list-item-chevron">&#8250;</span>' +
+    '</div>';
+  }).join('');
+
+  return '<div class="header">' +
+      '<button class="header-back" onclick="navHome()">&#8249;</button>' +
+      '<div class="header-title"><h1>' + h(cat.name) + '</h1><p>' + cat.subcategories.length + ' subcategories</p></div>' +
+      '<button class="header-add" onclick="doAddSub()" title="Add subcategory">+</button>' +
+    '</div>' +
+    '<div class="main slide-in">' +
+      '<div class="section-label">Subcategories</div>' +
+      '<div class="list">' +
+        (rows || '<div class="empty"><div class="empty-ico">&#128203;</div><div class="empty-ttl">No subcategories yet</div><div class="empty-sub">Tap + to add one</div></div>') +
+      '</div>' +
+    '</div>';
+}
+
+/* ---- SUBCATEGORY ---- */
+function renderSubcategory() {
+  var cat = getCat();
+  var sub = getSub();
+  if (!sub) { S.view='category'; return renderCategory(); }
+
+  var total   = sub.items.length;
+  var checked = sub.items.filter(function(x){ return x.checked; }).length;
+  var pct     = total > 0 ? Math.round(checked/total*100) : 0;
+
+  var progress = total > 0
+    ? '<div class="progress-card">' +
+        '<div class="progress-top">' +
+          '<span class="progress-lbl">Study Progress &mdash; ' + checked + '/' + total + '</span>' +
+          '<div style="display:flex;align-items:center;gap:8px">' +
+            '<button class="reset-btn" onclick="doReset()">&#8635; Reset</button>' +
+            '<span class="progress-pct">' + pct + '%</span>' +
+          '</div>' +
+        '</div>' +
+        '<div class="progress-bar"><div class="progress-fill" style="width:' + pct + '%"></div></div>' +
+      '</div>'
+    : '';
+
+  var rows = sub.items.map(function(item) {
+    return '<div class="check-item ' + (item.checked ? 'done' : '') + '">' +
+      '<input type="checkbox" ' + (item.checked ? 'checked' : '') + ' onchange="doToggle(\'' + item.id + '\')">' +
+      '<div class="check-item-text">' + h(item.text) + '</div>' +
+      '<div class="item-actions">' +
+        '<button class="btn-icon edit" onclick="doEditItem(\'' + item.id + '\')" title="Edit">&#9999;&#65039;</button>' +
+        '<button class="btn-icon del"  onclick="doDelItem(\'' + item.id + '\')"  title="Delete">&#128465;&#65039;</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  var catName = cat ? h(cat.name) : '';
+
+  return '<div class="header">' +
+      '<button class="header-back" onclick="navCat(S.catId)">&#8249;</button>' +
+      '<div class="header-title"><h1>' + h(sub.name) + '</h1><p>' + catName + '</p></div>' +
+      '<button class="header-add" onclick="doAddItem()" title="Add action">+</button>' +
+    '</div>' +
+    '<div class="main slide-in">' +
+      progress +
+      '<div class="section-label">Airmanship Actions</div>' +
+      '<div class="list">' +
+        (rows || '<div class="empty"><div class="empty-ico">&#9989;</div><div class="empty-ttl">No actions yet</div><div class="empty-sub">Tap + to add airmanship actions</div></div>') +
+      '</div>' +
+    '</div>' +
+    '<button class="fab" onclick="doAddItem()">+</button>';
+}
+
+/* ========================================================
+   NAVIGATION
+======================================================== */
+function navHome()  { S.view='home'; S.catId=null; S.subId=null; render(); }
+function navCat(id) { S.view='category'; S.catId=id; S.subId=null; render(); }
+function navSub(id) { S.view='subcategory'; S.subId=id; render(); }
+
+/* ========================================================
+   ACTIONS
+======================================================== */
+function doAddCat() {
+  openModal('New Main Category', '', 'Add').then(function(name) {
+    if (!name) return;
+    S.data.categories.push({ id: uid(), name: name, color: '#3b82f6', subcategories: [] });
+    save(); render();
+  });
+}
+
+function doEditCat(id) {
+  var cat = S.data.categories.find(function(c){ return c.id===id; });
+  if (!cat) return;
+  openModal('Edit Category', cat.name, 'Save').then(function(name) {
+    if (!name) return;
+    cat.name = name;
+    save(); render();
+  });
+}
+
+function doDelCat(id) {
+  var cat = S.data.categories.find(function(c){ return c.id===id; });
+  if (!cat) return;
+  if (!confirm('Delete "' + cat.name + '" and all its content?')) return;
+  S.data.categories = S.data.categories.filter(function(c){ return c.id!==id; });
+  if (S.catId === id) { S.view='home'; S.catId=null; }
+  save(); render();
+}
+
+function doAddSub() {
+  openModal('New Subcategory', '', 'Add').then(function(name) {
+    if (!name) return;
+    var cat = getCat();
+    if (!cat) return;
+    cat.subcategories.push({ id: uid(), name: name, items: [] });
+    save(); render();
+  });
+}
+
+function doEditSub(id) {
+  var cat = getCat();
+  var sub = cat && cat.subcategories.find(function(s){ return s.id===id; });
+  if (!sub) return;
+  openModal('Edit Subcategory', sub.name, 'Save').then(function(name) {
+    if (!name) return;
+    sub.name = name;
+    save(); render();
+  });
+}
+
+function doDelSub(id) {
+  var cat = getCat();
+  var sub = cat && cat.subcategories.find(function(s){ return s.id===id; });
+  if (!sub) return;
+  if (!confirm('Delete "' + sub.name + '" and all its actions?')) return;
+  cat.subcategories = cat.subcategories.filter(function(s){ return s.id!==id; });
+  if (S.subId === id) { S.view='category'; S.subId=null; }
+  save(); render();
+}
+
+function doAddItem() {
+  openModal('New Airmanship Action', '', 'Add', true).then(function(text) {
+    if (!text) return;
+    var sub = getSub();
+    if (!sub) return;
+    sub.items.push({ id: uid(), text: text, checked: false });
+    save(); render();
+  });
+}
+
+function doEditItem(id) {
+  var sub = getSub();
+  var item = sub && sub.items.find(function(x){ return x.id===id; });
+  if (!item) return;
+  openModal('Edit Action', item.text, 'Save', true).then(function(text) {
+    if (!text) return;
+    item.text = text;
+    save(); render();
+  });
+}
+
+function doDelItem(id) {
+  var sub = getSub();
+  var item = sub && sub.items.find(function(x){ return x.id===id; });
+  if (!item) return;
+  if (!confirm('Delete this action?')) return;
+  sub.items = sub.items.filter(function(x){ return x.id!==id; });
+  save(); render();
+}
+
+function doToggle(id) {
+  var sub = getSub();
+  var item = sub && sub.items.find(function(x){ return x.id===id; });
+  if (!item) return;
+  item.checked = !item.checked;
+  save(); render();
+}
+
+function doReset() {
+  var sub = getSub();
+  if (!sub) return;
+  sub.items.forEach(function(x){ x.checked = false; });
+  save(); render();
+}
+
+/* ========================================================
+   INIT
+======================================================== */
+render();
+</script>
+</body>
+</html>
