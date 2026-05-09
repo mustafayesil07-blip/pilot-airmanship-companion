@@ -542,7 +542,7 @@ function renderHome() {
   var rows = d.categories.map(function(cat) {
     var sc = cat.subcategories.length;
     var ic = cat.subcategories.reduce(function(a,s){ return a + s.items.length; }, 0);
-    return '<div class="list-item" onclick="navCat(\'' + cat.id + '\')">' +
+    return '<div class="list-item" onclick="navCat(\'' + cat.id + '\'">' +
       '<div class="list-item-bar" style="background:' + h(cat.color||'#3b82f6') + '"></div>' +
       '<div class="list-item-body">' +
         '<div class="list-item-name">' + h(cat.name) + '</div>' +
@@ -587,7 +587,7 @@ function renderCategory() {
     var total   = sub.items.length;
     var checked = sub.items.filter(function(x){ return x.checked; }).length;
     var meta = total === 0 ? '0 actions' : (total + ' actions &middot; ' + checked + '/' + total + ' reviewed');
-    return '<div class="list-item" onclick="navSub(\'' + sub.id + '\')">' +
+    return '<div class="list-item" onclick="navSub(\'' + sub.id + '\'">' +
       '<div class="num-badge">' + (i+1) + '</div>' +
       '<div class="list-item-body">' +
         '<div class="list-item-name">' + h(sub.name) + '</div>' +
@@ -639,7 +639,7 @@ function renderSubcategory() {
 
   var rows = sub.items.map(function(item) {
     return '<div class="check-item ' + (item.checked ? 'done' : '') + '">' +
-      '<input type="checkbox" ' + (item.checked ? 'checked' : '') + ' onchange="doToggle(\'' + item.id + '\')">' +
+      '<input type="checkbox" ' + (item.checked ? 'checked' : '') + ' onchange="doToggle(\'' + item.id + '\'">' +
       '<div class="check-item-text">' + h(item.text) + '</div>' +
       '<div class="item-actions">' +
         '<button class="btn-icon edit" onclick="doEditItem(\'' + item.id + '\')" title="Edit">&#9999;&#65039;</button>' +
@@ -782,6 +782,12 @@ function doReset() {
    INIT
 ======================================================== */
 render();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./sw.js');
+  });
+}
 </script>
 </body>
 </html>
