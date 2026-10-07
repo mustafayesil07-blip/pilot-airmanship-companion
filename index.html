@@ -142,6 +142,58 @@
     .hero-stat-val { font-size: 22px; font-weight: 700; color: var(--accent); line-height: 1; }
     .hero-stat-lbl { font-size: 9.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .6px; margin-top: 3px; }
 
+    /* ===== SEARCH ===== */
+    .search-box {
+      position: relative;
+      margin-bottom: 16px;
+    }
+    .search-ico {
+      position: absolute; left: 13px; top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted); font-size: 14px;
+      pointer-events: none;
+    }
+    .search-input {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 38px 12px 36px;
+      color: var(--text);
+      font-size: 14.5px; font-family: inherit;
+      outline: none;
+      transition: border-color .15s;
+      -webkit-appearance: none;
+    }
+    .search-input:focus { border-color: var(--accent); }
+    .search-input::placeholder { color: var(--text-muted); }
+    .search-clear {
+      position: absolute; right: 8px; top: 50%;
+      transform: translateY(-50%);
+      width: 26px; height: 26px;
+      border-radius: 7px; border: none;
+      background: var(--surface3); color: var(--text-sec);
+      cursor: pointer; font-size: 14px; line-height: 1;
+      display: none; align-items: center; justify-content: center;
+    }
+    .search-clear.show { display: flex; }
+    .result-type {
+      font-size: 9.5px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .6px;
+      color: var(--accent);
+      background: rgba(59,130,246,.1);
+      border: 1px solid rgba(59,130,246,.2);
+      border-radius: 5px;
+      padding: 3px 6px;
+      flex-shrink: 0;
+    }
+    mark {
+      background: rgba(245,158,11,.25);
+      color: var(--warning);
+      border-radius: 3px;
+      padding: 0 1px;
+    }
+
     /* ===== SECTION LABEL ===== */
     .section-label {
       font-size: 10.5px; font-weight: 600;
@@ -475,6 +527,7 @@ const S = {
   view: 'home',
   catId: null,
   subId: null,
+  q: '',
 };
 
 const getCat = () => S.data.categories.find(c => c.id === S.catId);
@@ -589,11 +642,92 @@ function renderHome() {
           '<div class="hero-stat"><div class="hero-stat-val">' + totalItem + '</div><div class="hero-stat-lbl">Actions</div></div>'+
         '</div>'+
       '</div>'+
-      '<div class="section-label">Main Categories</div>'+
-      '<div class="list">'+
-        (rows || '<div class="empty"><div class="empty-ico">&#128194;</div><div class="empty-ttl">No categories yet</div><div class="empty-sub">Tap + to add one</div></div>')+
+      '<div class="search-box">'+
+        '<span class="search-ico">&#128269;</span>'+
+        '<input class="search-input" id="search-input" type="text" enterkeyhint="search" placeholder="Search categories, scenarios, actions..." value="' + h(S.q) + '" oninput="onSearch(this.value)" autocomplete="off">'+
+        '<button class="search-clear' + (S.q ? ' show' : '') + '" id="search-clear" onclick="clearSearch()" title="Clear">&#10005;</button>'+
+      '</div>'+
+      '<div id="search-results">' + (S.q ? renderSearchResults(S.q) : '') + '</div>'+
+      '<div id="home-list"' + (S.q ? ' style="display:none"' : '') + '>'+
+        '<div class="section-label">Main Categories</div>'+
+        '<div class="list">'+
+          (rows || '<div class="empty"><div class="empty-ico">&#128194;</div><div class="empty-ttl">No categories yet</div><div class="empty-sub">Tap + to add one</div></div>')+
+        '</div>'+
       '</div>'+
     '</div>';
+}
+
+/* ---- SEARCH ---- */
+function highlight(text, q) {
+  var lower = text.toLowerCase();
+  var out = '', i = 0, idx;
+  while ((idx = lower.indexOf(q, i)) !== -1) {
+    out += h(text.slice(i, idx)) + '<mark>' + h(text.slice(idx, idx + q.length)) + '</mark>';
+    i = idx + q.length;
+  }
+  return out + h(text.slice(i));
+}
+
+function renderSearchResults(raw) {
+  var q = raw.trim().toLowerCase();
+  if (!q) return '';
+  var results = [];
+
+  S.data.categories.forEach(function(cat) {
+    if (cat.name.toLowerCase().indexOf(q) !== -1) {
+      results.push({ type: 'Category', text: cat.name, meta: cat.subcategories.length + ' subcategories',
+        onclick: "goTo('" + cat.id + "')" });
+    }
+    cat.subcategories.forEach(function(sub) {
+      if (sub.name.toLowerCase().indexOf(q) !== -1) {
+        results.push({ type: 'Scenario', text: sub.name, meta: cat.name,
+          onclick: "goTo('" + cat.id + "','" + sub.id + "')" });
+      }
+      sub.items.forEach(function(item) {
+        if (item.text.toLowerCase().indexOf(q) !== -1) {
+          results.push({ type: 'Action', text: item.text, meta: cat.name + ' › ' + sub.name,
+            onclick: "goTo('" + cat.id + "','" + sub.id + "')" });
+        }
+      });
+    });
+  });
+
+  if (!results.length) {
+    return '<div class="empty"><div class="empty-ico">&#128269;</div><div class="empty-ttl">No results</div><div class="empty-sub">Try a different keyword</div></div>';
+  }
+
+  return '<div class="section-label">' + results.length + ' result' + (results.length === 1 ? '' : 's') + '</div>'+
+    '<div class="list">' + results.map(function(r) {
+      return '<div class="list-item" onclick="' + r.onclick + '">'+
+        '<span class="result-type">' + r.type + '</span>'+
+        '<div class="list-item-body">'+
+          '<div class="list-item-name">' + highlight(r.text, q) + '</div>'+
+          '<div class="list-item-meta">' + h(r.meta) + '</div>'+
+        '</div>'+
+        '<span class="list-item-chevron">&#8250;</span>'+
+      '</div>';
+    }).join('') + '</div>';
+}
+
+function onSearch(val) {
+  S.q = val;
+  document.getElementById('search-results').innerHTML = renderSearchResults(val);
+  document.getElementById('home-list').style.display = val.trim() ? 'none' : '';
+  document.getElementById('search-clear').classList.toggle('show', !!val);
+}
+
+function clearSearch() {
+  var input = document.getElementById('search-input');
+  input.value = '';
+  onSearch('');
+  input.focus();
+}
+
+function goTo(catId, subId) {
+  S.catId = catId;
+  S.subId = subId || null;
+  S.view = subId ? 'subcategory' : 'category';
+  render();
 }
 
 /* ---- CATEGORY ---- */
