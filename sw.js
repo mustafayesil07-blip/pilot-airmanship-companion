@@ -1,4 +1,4 @@
-const CACHE = 'app-v5';
+const CACHE = 'app-v6';
 const CORE = [
   './',
   './index.html',
