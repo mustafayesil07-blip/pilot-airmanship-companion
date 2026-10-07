@@ -142,6 +142,58 @@
     .hero-stat-val { font-size: 22px; font-weight: 700; color: var(--accent); line-height: 1; }
     .hero-stat-lbl { font-size: 9.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .6px; margin-top: 3px; }
 
+    /* ===== SEARCH ===== */
+    .search-box {
+      position: relative;
+      margin-bottom: 16px;
+    }
+    .search-ico {
+      position: absolute; left: 13px; top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted); font-size: 14px;
+      pointer-events: none;
+    }
+    .search-input {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 38px 12px 36px;
+      color: var(--text);
+      font-size: 14.5px; font-family: inherit;
+      outline: none;
+      transition: border-color .15s;
+      -webkit-appearance: none;
+    }
+    .search-input:focus { border-color: var(--accent); }
+    .search-input::placeholder { color: var(--text-muted); }
+    .search-clear {
+      position: absolute; right: 8px; top: 50%;
+      transform: translateY(-50%);
+      width: 26px; height: 26px;
+      border-radius: 7px; border: none;
+      background: var(--surface3); color: var(--text-sec);
+      cursor: pointer; font-size: 14px; line-height: 1;
+      display: none; align-items: center; justify-content: center;
+    }
+    .search-clear.show { display: flex; }
+    .result-type {
+      font-size: 9.5px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .6px;
+      color: var(--accent);
+      background: rgba(59,130,246,.1);
+      border: 1px solid rgba(59,130,246,.2);
+      border-radius: 5px;
+      padding: 3px 6px;
+      flex-shrink: 0;
+    }
+    mark {
+      background: rgba(245,158,11,.25);
+      color: var(--warning);
+      border-radius: 3px;
+      padding: 0 1px;
+    }
+
     /* ===== SECTION LABEL ===== */
     .section-label {
       font-size: 10.5px; font-weight: 600;
@@ -235,6 +287,7 @@
     .check-item-text {
       flex: 1; font-size: 13.5px; color: var(--text);
       line-height: 1.45; word-break: break-word;
+      white-space: pre-line;
     }
     .check-item.done .check-item-text {
       text-decoration: line-through; color: var(--text-muted);
@@ -365,8 +418,30 @@
       outline: none; resize: vertical;
       transition: border-color .15s;
       min-height: 48px;
+      max-height: 45vh;
     }
     .modal-input:focus { border-color: var(--accent); }
+
+    .scan-row {
+      display: none;
+      align-items: center; gap: 10px;
+      margin-top: 10px;
+    }
+    .scan-row.show { display: flex; }
+    .scan-btn {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      color: var(--accent);
+      border-radius: 10px;
+      padding: 9px 12px;
+      font-size: 13px; font-weight: 600; font-family: inherit;
+      cursor: pointer; flex-shrink: 0;
+    }
+    .scan-btn:active { background: var(--surface3); }
+    .scan-btn:disabled { opacity: .5; cursor: default; }
+    .scan-status { font-size: 11.5px; color: var(--text-muted); line-height: 1.35; }
+    .scan-status.err { color: var(--danger); }
 
     .modal-btns { display: flex; gap: 8px; margin-top: 14px; }
 
@@ -419,6 +494,11 @@
     <div class="modal-handle"></div>
     <div class="modal-title" id="modal-title">Add</div>
     <textarea class="modal-input" id="modal-input" rows="2" placeholder="Enter text..."></textarea>
+    <div class="scan-row" id="scan-row">
+      <button class="scan-btn" id="scan-btn" type="button">&#128247; Scan handwriting</button>
+      <span class="scan-status" id="scan-status"></span>
+    </div>
+    <input type="file" id="scan-file" accept="image/*" hidden>
     <div class="modal-btns">
       <button class="btn btn-cancel" id="btn-cancel">Cancel</button>
       <button class="btn btn-primary" id="btn-confirm">Add</button>
@@ -475,6 +555,7 @@ const S = {
   view: 'home',
   catId: null,
   subId: null,
+  q: '',
 };
 
 const getCat = () => S.data.categories.find(c => c.id === S.catId);
@@ -495,15 +576,22 @@ function openModal(title, defaultVal, confirmLabel, multiline) {
   multiline    = !!multiline;
 
   return new Promise(function(resolve) {
+    modalSession++;
     mTitle.textContent    = title;
     mInput.value          = defaultVal;
     mInput.rows           = multiline ? 3 : 2;
     mConfirm.textContent  = confirmLabel;
+    scanRow.classList.toggle('show', multiline);
+    setScanStatus('');
+    scanBtn.disabled = false;
     overlay.classList.add('open');
     setTimeout(function() { mInput.focus(); mInput.select(); }, 280);
 
     function done(val) {
+      modalSession++;
       overlay.classList.remove('open');
+      mConfirm.removeEventListener('click', onConfirm);
+      mCancel .removeEventListener('click', onCancel);
       mInput.removeEventListener('keydown', onKey);
       overlay.removeEventListener('click', onOverlay);
       resolve(val);
@@ -524,12 +612,104 @@ function openModal(title, defaultVal, confirmLabel, multiline) {
 
     function onOverlay(e) { if (e.target === overlay) onCancel(); }
 
-    mConfirm.addEventListener('click', onConfirm, { once: true });
-    mCancel .addEventListener('click', onCancel,  { once: true });
+    mConfirm.addEventListener('click', onConfirm);
+    mCancel .addEventListener('click', onCancel);
     mInput  .addEventListener('keydown', onKey);
     overlay .addEventListener('click', onOverlay);
   });
 }
+
+/* ========================================================
+   HANDWRITING OCR (Tesseract.js, self-hosted in ./ocr)
+======================================================== */
+const scanRow    = document.getElementById('scan-row');
+const scanBtn    = document.getElementById('scan-btn');
+const scanStatus = document.getElementById('scan-status');
+const scanFile   = document.getElementById('scan-file');
+var modalSession = 0;
+var ocrWorkerPromise = null;
+
+function setScanStatus(text, isErr) {
+  scanStatus.textContent = text;
+  scanStatus.classList.toggle('err', !!isErr);
+}
+
+function loadScript(src) {
+  return new Promise(function(resolve, reject) {
+    var s = document.createElement('script');
+    s.src = src;
+    s.onload = resolve;
+    s.onerror = function() { reject(new Error('Could not load ' + src)); };
+    document.head.appendChild(s);
+  });
+}
+
+function getOcrWorker() {
+  if (!ocrWorkerPromise) {
+    // Absolute URLs: the worker resolves paths relative to itself, not the page.
+    var base = new URL('ocr/', location.href).href;
+    ocrWorkerPromise = loadScript(base + 'tesseract.min.js').then(function() {
+      return Tesseract.createWorker(['tur', 'eng'], 1, {
+        workerPath: base + 'worker.min.js',
+        corePath: base,
+        langPath: base + 'lang',
+        workerBlobURL: false,
+        logger: function(m) {
+          if (m.status === 'recognizing text') {
+            setScanStatus('Reading text… ' + Math.round(m.progress * 100) + '%');
+          }
+        }
+      });
+    });
+    ocrWorkerPromise.catch(function() { ocrWorkerPromise = null; });
+  }
+  return ocrWorkerPromise;
+}
+
+// Large phone photos make OCR slow without improving accuracy.
+function imageToCanvas(file) {
+  return createImageBitmap(file).then(function(bmp) {
+    var scale = Math.min(1, 2000 / Math.max(bmp.width, bmp.height));
+    var c = document.createElement('canvas');
+    c.width  = Math.round(bmp.width * scale);
+    c.height = Math.round(bmp.height * scale);
+    c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+    bmp.close();
+    return c;
+  });
+}
+
+scanBtn.addEventListener('click', function() { scanFile.click(); });
+
+scanFile.addEventListener('change', function() {
+  var file = scanFile.files[0];
+  scanFile.value = '';
+  if (!file) return;
+  var session = modalSession;
+  scanBtn.disabled = true;
+  setScanStatus('Loading OCR engine…');
+
+  Promise.all([getOcrWorker(), imageToCanvas(file)]).then(function(r) {
+    setScanStatus('Reading text…');
+    return r[0].recognize(r[1]);
+  }).then(function(res) {
+    if (session !== modalSession) return;
+    var text = res.data.text.replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+    if (!text) { setScanStatus('No text found — try a clearer, well-lit photo.', true); return; }
+    var cur = mInput.value.trim();
+    mInput.value = cur ? cur + '\n' + text : text;
+    mInput.rows = 6;
+    setScanStatus('Done — check and correct the text before saving.');
+    mInput.focus();
+  }).catch(function(err) {
+    if (session !== modalSession) return;
+    setScanStatus(navigator.onLine
+      ? 'Scan failed: ' + (err && err.message || err)
+      : 'OCR engine not downloaded yet — use Scan once while online.', true);
+  }).then(function() {
+    if (session === modalSession) scanBtn.disabled = false;
+  });
+});
 
 /* ========================================================
    RENDER
@@ -589,11 +769,92 @@ function renderHome() {
           '<div class="hero-stat"><div class="hero-stat-val">' + totalItem + '</div><div class="hero-stat-lbl">Actions</div></div>'+
         '</div>'+
       '</div>'+
-      '<div class="section-label">Main Categories</div>'+
-      '<div class="list">'+
-        (rows || '<div class="empty"><div class="empty-ico">&#128194;</div><div class="empty-ttl">No categories yet</div><div class="empty-sub">Tap + to add one</div></div>')+
+      '<div class="search-box">'+
+        '<span class="search-ico">&#128269;</span>'+
+        '<input class="search-input" id="search-input" type="text" enterkeyhint="search" placeholder="Search categories, scenarios, actions..." value="' + h(S.q) + '" oninput="onSearch(this.value)" autocomplete="off">'+
+        '<button class="search-clear' + (S.q ? ' show' : '') + '" id="search-clear" onclick="clearSearch()" title="Clear">&#10005;</button>'+
+      '</div>'+
+      '<div id="search-results">' + (S.q ? renderSearchResults(S.q) : '') + '</div>'+
+      '<div id="home-list"' + (S.q ? ' style="display:none"' : '') + '>'+
+        '<div class="section-label">Main Categories</div>'+
+        '<div class="list">'+
+          (rows || '<div class="empty"><div class="empty-ico">&#128194;</div><div class="empty-ttl">No categories yet</div><div class="empty-sub">Tap + to add one</div></div>')+
+        '</div>'+
       '</div>'+
     '</div>';
+}
+
+/* ---- SEARCH ---- */
+function highlight(text, q) {
+  var lower = text.toLowerCase();
+  var out = '', i = 0, idx;
+  while ((idx = lower.indexOf(q, i)) !== -1) {
+    out += h(text.slice(i, idx)) + '<mark>' + h(text.slice(idx, idx + q.length)) + '</mark>';
+    i = idx + q.length;
+  }
+  return out + h(text.slice(i));
+}
+
+function renderSearchResults(raw) {
+  var q = raw.trim().toLowerCase();
+  if (!q) return '';
+  var results = [];
+
+  S.data.categories.forEach(function(cat) {
+    if (cat.name.toLowerCase().indexOf(q) !== -1) {
+      results.push({ type: 'Category', text: cat.name, meta: cat.subcategories.length + ' subcategories',
+        onclick: "goTo('" + cat.id + "')" });
+    }
+    cat.subcategories.forEach(function(sub) {
+      if (sub.name.toLowerCase().indexOf(q) !== -1) {
+        results.push({ type: 'Scenario', text: sub.name, meta: cat.name,
+          onclick: "goTo('" + cat.id + "','" + sub.id + "')" });
+      }
+      sub.items.forEach(function(item) {
+        if (item.text.toLowerCase().indexOf(q) !== -1) {
+          results.push({ type: 'Action', text: item.text, meta: cat.name + ' › ' + sub.name,
+            onclick: "goTo('" + cat.id + "','" + sub.id + "')" });
+        }
+      });
+    });
+  });
+
+  if (!results.length) {
+    return '<div class="empty"><div class="empty-ico">&#128269;</div><div class="empty-ttl">No results</div><div class="empty-sub">Try a different keyword</div></div>';
+  }
+
+  return '<div class="section-label">' + results.length + ' result' + (results.length === 1 ? '' : 's') + '</div>'+
+    '<div class="list">' + results.map(function(r) {
+      return '<div class="list-item" onclick="' + r.onclick + '">'+
+        '<span class="result-type">' + r.type + '</span>'+
+        '<div class="list-item-body">'+
+          '<div class="list-item-name">' + highlight(r.text, q) + '</div>'+
+          '<div class="list-item-meta">' + h(r.meta) + '</div>'+
+        '</div>'+
+        '<span class="list-item-chevron">&#8250;</span>'+
+      '</div>';
+    }).join('') + '</div>';
+}
+
+function onSearch(val) {
+  S.q = val;
+  document.getElementById('search-results').innerHTML = renderSearchResults(val);
+  document.getElementById('home-list').style.display = val.trim() ? 'none' : '';
+  document.getElementById('search-clear').classList.toggle('show', !!val);
+}
+
+function clearSearch() {
+  var input = document.getElementById('search-input');
+  input.value = '';
+  onSearch('');
+  input.focus();
+}
+
+function goTo(catId, subId) {
+  S.catId = catId;
+  S.subId = subId || null;
+  S.view = subId ? 'subcategory' : 'category';
+  render();
 }
 
 /* ---- CATEGORY ---- */
