@@ -1,5 +1,6 @@
-const CACHE = 'app-v3';
+const CACHE = 'app-v4';
 const CORE = [
+  './',
   './index.html',
   './manifest.json',
   './icon-192.png',
@@ -8,15 +9,13 @@ const CORE = [
 
 self.addEventListener('install', function(e) {
   e.waitUntil(
-    caches.open(CACHE).then(function(c) {
+    caches.open(CACHE).then(function(cache) {
+      // cache.add() resolves relative URLs to absolute before storing,
+      // so cache.match(absoluteRequest) works correctly at fetch time.
       return Promise.all(
         CORE.map(function(url) {
-          return fetch(url, { cache: 'no-store' }).then(function(r) {
-            if (r && r.status === 200) return c.put(url, r);
-          }).catch(function() {
-            return caches.match(url).then(function(old) {
-              if (old) return c.put(url, old);
-            });
+          return cache.add(url).catch(function() {
+            // ignore individual failures (e.g. icon not yet deployed)
           });
         })
       );
@@ -39,11 +38,12 @@ self.addEventListener('fetch', function(e) {
   if (e.request.method !== 'GET') return;
   var url = e.request.url;
   if (url.startsWith('chrome-extension://')) return;
+  if (url.startsWith('blob:') || url.startsWith('data:')) return;
 
   e.respondWith(
     caches.open(CACHE).then(function(cache) {
       return cache.match(e.request).then(function(cached) {
-        // Start network fetch (runs in background to keep cache fresh)
+        // Background revalidation (stale-while-revalidate)
         var networkFetch = fetch(e.request).then(function(response) {
           if (response && response.status === 200 && response.type !== 'opaque') {
             cache.put(e.request, response.clone());
@@ -51,13 +51,15 @@ self.addEventListener('fetch', function(e) {
           return response;
         }).catch(function() { return null; });
 
-        // Return cached version immediately (stale-while-revalidate)
         if (cached) return cached;
 
-        // No cache: wait for network
+        // Nothing cached — wait for network
         return networkFetch.then(function(response) {
           if (response) return response;
-          if (e.request.mode === 'navigate') return cache.match('./index.html');
+          // Offline fallback for page navigations
+          if (e.request.mode === 'navigate') {
+            return cache.match(new Request('./index.html'));
+          }
           return new Response('', { status: 503, statusText: 'Offline' });
         });
       });
